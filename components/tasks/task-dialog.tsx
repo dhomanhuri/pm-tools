@@ -34,6 +34,7 @@ interface Task {
   due_date?: string;
   estimated_hours?: number;
   assigned_to?: string | null;
+  assignees?: string[];
   reminder_hours_before?: number | null;
   webhook_url?: string | null;
 }
@@ -59,6 +60,7 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
     estimated_hours: 0,
     project_id: null,
     assigned_to: null,
+    assignees: [],
     reminder_hours_before: null,
     webhook_url: "",
   });
@@ -69,6 +71,7 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
         ...task,
         start_date: task.start_date || "",
         due_date: task.due_date || "",
+        assignees: task.assignees || (task.assigned_to ? [task.assigned_to] : []),
         reminder_hours_before: task.reminder_hours_before || null,
         webhook_url: task.webhook_url || "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa",
       });
@@ -83,6 +86,7 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
         estimated_hours: 0,
         project_id: null,
         assigned_to: null,
+        assignees: [],
         reminder_hours_before: null,
         webhook_url: "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa",
       });
@@ -129,32 +133,67 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
       }
 
       const taskData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        status: formData.status,
+        priority: formData.priority,
+        start_date: formData.start_date || null,
+        due_date: formData.due_date || null,
         created_by: user.id,
         estimated_hours: formData.estimated_hours || 0,
         project_id: formData.project_id || null,
-        assigned_to: formData.assigned_to || null,
+        // legacy support, taking first assignee
+        assigned_to: formData.assignees && formData.assignees.length > 0 ? formData.assignees[0] : null,
         reminder_hours_before: formData.reminder_hours_before || null,
         webhook_url: formData.webhook_url || null,
       };
 
-      if (task?.id) {
+      let taskId = task?.id;
+
+      if (taskId) {
         const { error } = await supabase
           .from("tasks")
           .update(taskData)
-          .eq("id", task.id);
+          .eq("id", taskId);
 
         if (error) throw error;
-        toast.success("Task updated successfully");
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("tasks")
-          .insert([taskData]);
+          .insert([taskData])
+          .select()
+          .single();
 
         if (error) throw error;
-        toast.success("Task created successfully");
+        taskId = data.id;
       }
 
+      // Handle assignments (many-to-many)
+      if (taskId && formData.assignees) {
+        // 1. Delete existing assignments
+        await supabase
+          .from("assignments")
+          .delete()
+          .eq("task_id", taskId);
+
+        // 2. Insert new assignments
+        if (formData.assignees.length > 0) {
+          const assignmentsToInsert = formData.assignees.map(userId => ({
+            task_id: taskId,
+            user_id: userId,
+            assigned_date: new Date().toISOString().split('T')[0],
+            status: 'Assigned'
+          }));
+
+          const { error: assignError } = await supabase
+            .from("assignments")
+            .insert(assignmentsToInsert);
+          
+          if (assignError) console.error("Error updating assignments:", assignError);
+        }
+      }
+
+      toast.success(task ? "Task updated successfully" : "Task created successfully");
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
@@ -224,24 +263,44 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
 
               <div className="grid gap-2">
                 <Label htmlFor="assigned_to">Assign To</Label>
-                <Select
-                  value={formData.assigned_to || "unassigned"}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, assigned_to: value === "unassigned" ? null : value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Unassigned" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.nama_lengkap}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="border rounded-md p-3 max-h-[150px] overflow-y-auto space-y-2">
+                  {users.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No users found.</p>
+                  ) : (
+                    users.map((user) => (
+                      <div key={user.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`user-${user.id}`}
+                          checked={formData.assignees?.includes(user.id)}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            const currentAssignees = formData.assignees || [];
+                            if (isChecked) {
+                              setFormData({
+                                ...formData,
+                                assignees: [...currentAssignees, user.id],
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                assignees: currentAssignees.filter((id) => id !== user.id),
+                              });
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                        />
+                        <label
+                          htmlFor={`user-${user.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {user.nama_lengkap}
+                        </label>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">Select one or more users</p>
               </div>
             </div>
 

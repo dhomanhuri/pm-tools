@@ -129,7 +129,25 @@ curl -X POST http://localhost:3000/api/tasks \
   }'
 ```
 
-### 2. AI Chatbot API
+### 2. Lookup Data (Project ID & User ID)
+
+Gunakan endpoint ini untuk mendapatkan daftar ID yang dibutuhkan saat membuat task.
+
+**Endpoint:** `GET /api/lookup`
+
+**Response:**
+```json
+{
+  "projects": [
+    { "id": "uuid-1", "name": "Website Redesign", "status": "Active" }
+  ],
+  "users": [
+    { "id": "uuid-2", "nama_lengkap": "John Doe", "email": "john@example.com" }
+  ]
+}
+```
+
+### 3. AI Chatbot API
 
 **Endpoint:** `POST /api/ai/chat`
 

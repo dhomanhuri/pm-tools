@@ -30,7 +30,13 @@ interface Task {
     id: string;
     name: string;
   };
-  assignee: {
+  assignees?: {
+    id: string;
+    nama_lengkap: string;
+    email: string;
+  }[];
+  // Legacy support
+  assignee?: {
     id: string;
     nama_lengkap: string;
     email: string;
@@ -66,7 +72,8 @@ export function KanbanBoard() {
         .select(`
           *,
           project:projects(id, name),
-          assignee:users!tasks_assigned_to_fkey(id, nama_lengkap, email)
+          assignee:users!tasks_assigned_to_fkey(id, nama_lengkap, email),
+          assignments:assignments(user:users(id, nama_lengkap, email))
         `)
         .order("order_index", { ascending: true })
         .order("created_at", { ascending: false });
@@ -78,7 +85,14 @@ export function KanbanBoard() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setTasks(data || []);
+      
+      // Transform data to include assignees from assignments table
+      const tasksWithAssignees = (data || []).map((task: any) => ({
+        ...task,
+        assignees: task.assignments?.map((a: any) => a.user) || (task.assignee ? [task.assignee] : [])
+      }));
+
+      setTasks(tasksWithAssignees);
     } catch (error: any) {
       toast.error("Failed to load tasks: " + error.message);
     } finally {
@@ -264,18 +278,27 @@ export function KanbanBoard() {
                                     </div>
                                   )}
                                   
-                                  {task.assignee ? (
-                                    <Avatar className="h-6 w-6 ml-auto">
-                                      <AvatarImage src={`https://avatar.vercel.sh/${task.assignee.email}`} />
-                                      <AvatarFallback className="text-[10px]">
-                                        {getInitials(task.assignee.nama_lengkap)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                  ) : (
-                                    <div className="ml-auto">
-                                      <UserIcon className="h-4 w-4 opacity-50" />
-                                    </div>
-                                  )}
+                                  <div className="flex -space-x-2 ml-auto">
+                                    {task.assignees && task.assignees.length > 0 ? (
+                                      task.assignees.slice(0, 3).map((assignee) => (
+                                        <Avatar key={assignee.id} className="h-6 w-6 border-2 border-white dark:border-slate-900">
+                                          <AvatarImage src={`https://avatar.vercel.sh/${assignee.email}`} />
+                                          <AvatarFallback className="text-[8px]">
+                                            {getInitials(assignee.nama_lengkap)}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      ))
+                                    ) : (
+                                      <div className="ml-auto">
+                                        <UserIcon className="h-4 w-4 opacity-50" />
+                                      </div>
+                                    )}
+                                    {task.assignees && task.assignees.length > 3 && (
+                                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[8px] border-2 border-white dark:border-slate-900">
+                                        +{task.assignees.length - 3}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>

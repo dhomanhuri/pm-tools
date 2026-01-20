@@ -64,14 +64,18 @@ export async function POST(req: Request) {
       due_date,
       estimated_hours,
       reminder_hours_before,
-      webhook_url
+      webhook_url,
+      assignees // Expecting array of UUIDs
     } = body;
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    // Use the first assignee as the legacy assigned_to value if provided
+    const primaryAssignee = (assignees && assignees.length > 0) ? assignees[0] : (assigned_to || null);
+
+    const { data: taskData, error } = await supabase
       .from("tasks")
       .insert([
         {
@@ -80,7 +84,7 @@ export async function POST(req: Request) {
           status: status || "Todo",
           priority: priority || "Medium",
           project_id: project_id || null,
-          assigned_to: assigned_to || null,
+          assigned_to: primaryAssignee,
           start_date,
           due_date,
           estimated_hours,
@@ -94,7 +98,27 @@ export async function POST(req: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json(data, { status: 201 });
+    // Handle assignments table
+    const assigneesList = assignees || (assigned_to ? [assigned_to] : []);
+    
+    if (assigneesList.length > 0) {
+      const assignmentsToInsert = assigneesList.map((userId: string) => ({
+        task_id: taskData.id,
+        user_id: userId,
+        assigned_date: new Date().toISOString().split('T')[0],
+        status: 'Assigned'
+      }));
+
+      const { error: assignError } = await supabase
+        .from("assignments")
+        .insert(assignmentsToInsert);
+
+      if (assignError) {
+        console.error("Failed to insert assignments:", assignError);
+      }
+    }
+
+    return NextResponse.json(taskData, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
