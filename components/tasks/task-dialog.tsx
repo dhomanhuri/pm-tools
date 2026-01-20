@@ -34,6 +34,8 @@ interface Task {
   due_date?: string;
   estimated_hours?: number;
   assigned_to?: string | null;
+  reminder_hours_before?: number | null;
+  webhook_url?: string | null;
 }
 
 interface TaskDialogProps {
@@ -57,6 +59,8 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
     estimated_hours: 0,
     project_id: null,
     assigned_to: null,
+    reminder_hours_before: null,
+    webhook_url: "",
   });
 
   useEffect(() => {
@@ -65,6 +69,8 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
         ...task,
         start_date: task.start_date || "",
         due_date: task.due_date || "",
+        reminder_hours_before: task.reminder_hours_before || null,
+        webhook_url: task.webhook_url || "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa",
       });
     } else {
       setFormData({
@@ -77,6 +83,8 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
         estimated_hours: 0,
         project_id: null,
         assigned_to: null,
+        reminder_hours_before: null,
+        webhook_url: "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa",
       });
     }
   }, [task, open]);
@@ -126,6 +134,8 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
         estimated_hours: formData.estimated_hours || 0,
         project_id: formData.project_id || null,
         assigned_to: formData.assigned_to || null,
+        reminder_hours_before: formData.reminder_hours_before || null,
+        webhook_url: formData.webhook_url || null,
       };
 
       if (task?.id) {
@@ -193,16 +203,16 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
               <div className="grid gap-2">
                 <Label htmlFor="project">Project</Label>
                 <Select
-                  value={formData.project_id || ""}
+                  value={formData.project_id || "unassigned"}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, project_id: value || null })
+                    setFormData({ ...formData, project_id: value === "unassigned" ? null : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select project" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Project</SelectItem>
+                    <SelectItem value="unassigned">No Project</SelectItem>
                     {projects.map((project) => (
                       <SelectItem key={project.id} value={project.id}>
                         {project.name}
@@ -215,16 +225,16 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
               <div className="grid gap-2">
                 <Label htmlFor="assigned_to">Assign To</Label>
                 <Select
-                  value={formData.assigned_to || ""}
+                  value={formData.assigned_to || "unassigned"}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, assigned_to: value || null })
+                    setFormData({ ...formData, assigned_to: value === "unassigned" ? null : value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Unassigned" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.nama_lengkap}
@@ -318,6 +328,42 @@ export function TaskDialog({ open, onOpenChange, task, onSuccess }: TaskDialogPr
                   })
                 }
               />
+            </div>
+
+            <div className="grid gap-2 border-t pt-4">
+              <h3 className="font-medium text-sm">Notifications & Reminders</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="reminder">Remind me before (hours)</Label>
+                  <Input
+                    id="reminder"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 1"
+                    value={formData.reminder_hours_before || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        reminder_hours_before: parseInt(e.target.value) || null,
+                      })
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="webhook">Webhook URL (Optional)</Label>
+                  <Input
+                    id="webhook"
+                    placeholder="https://discord.com/api/webhooks/..."
+                    value={formData.webhook_url || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, webhook_url: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Reminders will be sent via email to the assignee and to the webhook URL if provided.
+              </p>
             </div>
           </div>
           <DialogFooter>

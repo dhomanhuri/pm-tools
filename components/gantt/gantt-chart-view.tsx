@@ -6,36 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay } from "date-fns";
+import { useProject } from "@/context/project-context";
 
 export function GanttChartView() {
+  const { selectedProject } = useProject();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedProject, setSelectedProject] = useState<string>("all");
-  const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
-    loadProjects();
     loadTasks();
   }, [selectedProject]);
-
-  const loadProjects = async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("projects")
-      .select("*")
-      .order("name");
-    if (data) setProjects(data);
-  };
 
   const loadTasks = async () => {
     setLoading(true);
@@ -50,8 +33,8 @@ export function GanttChartView() {
         `)
         .order("start_date", { ascending: true });
 
-      if (selectedProject !== "all") {
-        query = query.eq("project_id", selectedProject);
+      if (selectedProject) {
+        query = query.eq("project_id", selectedProject.id);
       }
 
       const { data, error } = await query;
@@ -137,21 +120,6 @@ export function GanttChartView() {
           <p className="text-slate-600 dark:text-slate-400 mt-1">
             Visual timeline of your tasks
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Select value={selectedProject} onValueChange={setSelectedProject}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by project" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Projects</SelectItem>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
 

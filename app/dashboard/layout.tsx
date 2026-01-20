@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from 'next/navigation';
 import { Sidebar } from "@/components/sidebar";
 import { TopNav } from "@/components/top-nav";
+import { ProjectProvider } from "@/context/project-context";
+import { AIAssistant } from "@/components/chat/ai-assistant";
 
 export default async function DashboardLayout({
   children,
@@ -29,15 +31,18 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
-      <Sidebar user={userProfile} />
-      <div className="flex-1 flex flex-col">
-        <TopNav user={userProfile} />
-        <main className="flex-1 overflow-auto bg-gradient-to-br from-orange-50/50 via-white to-orange-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
-          {children}
-        </main>
+    <ProjectProvider>
+      <div className="flex h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
+        <Sidebar user={userProfile} />
+        <div className="flex-1 flex flex-col">
+          <TopNav user={userProfile} />
+          <main className="flex-1 overflow-auto bg-gradient-to-br from-orange-50/50 via-white to-orange-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
+            {children}
+          </main>
+          <AIAssistant />
+        </div>
       </div>
-    </div>
+    </ProjectProvider>
   );
 }
 

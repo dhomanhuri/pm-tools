@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, Settings, LogOut, CheckSquare, UserCheck, GanttChart, Calendar } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, LogOut, CheckSquare, UserCheck, GanttChart, Calendar, Kanban } from 'lucide-react';
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from './theme-toggle';
+import { ProjectSwitcher } from './project-switcher';
 
 const menuItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Tasks", href: "/dashboard/tasks", icon: CheckSquare },
+  { label: "Kanban Board", href: "/dashboard/kanban", icon: Kanban },
   { label: "Assignments", href: "/dashboard/assignments", icon: UserCheck },
   { label: "Gantt Chart", href: "/dashboard/gantt", icon: GanttChart },
   { label: "Calendar", href: "/dashboard/calendar", icon: Calendar },
@@ -47,6 +49,7 @@ export function Sidebar({ user }: { user: any }) {
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-auto">
+        <ProjectSwitcher />
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (

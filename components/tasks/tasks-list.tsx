@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TaskDialog } from "./task-dialog";
 import { createClient } from "@/lib/supabase/client";
+import { useProject } from "@/context/project-context";
 import { Plus, Edit, Trash2, Filter } from "lucide-react";
 import {
   Select,
@@ -19,6 +20,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 export function TasksList() {
+  const { selectedProject } = useProject();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -29,7 +31,7 @@ export function TasksList() {
 
   useEffect(() => {
     loadTasks();
-  }, [filterStatus, filterPriority]);
+  }, [filterStatus, filterPriority, selectedProject]);
 
   const loadTasks = async () => {
     setLoading(true);
@@ -44,6 +46,10 @@ export function TasksList() {
           creator:users!tasks_created_by_fkey(id, nama_lengkap)
         `)
         .order("created_at", { ascending: false });
+
+      if (selectedProject) {
+        query = query.eq("project_id", selectedProject.id);
+      }
 
       if (filterStatus !== "all") {
         query = query.eq("status", filterStatus);

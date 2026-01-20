@@ -89,6 +89,54 @@ Lihat `SETUP.md` untuk instruksi setup lengkap.
 
 Lihat `COPY_FILES.md` untuk daftar file yang perlu di-copy dari project utama.
 
+## API Usage
+
+Aplikasi ini menyediakan REST API endpoints yang dapat diakses di `/api/*`.
+
+**Catatan:** API ini menggunakan autentikasi sesi (cookie based), jadi pastikan Anda login terlebih dahulu atau mengirimkan cookie sesi yang valid.
+
+### 1. Membuat Task Baru via API
+
+**Endpoint:** `POST /api/tasks`
+
+**Request Body (JSON):**
+```json
+{
+  "title": "Fix critical bug in login",
+  "project_id": "uuid-project-anda",
+  "priority": "High",
+  "status": "Todo",
+  "assigned_to": "uuid-user-assignee",
+  "start_date": "2024-02-01",
+  "due_date": "2024-02-05",
+  "estimated_hours": 4,
+  "webhook_url": "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa"
+}
+```
+
+**Contoh cURL:**
+```bash
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Content-Type: application/json" \
+  -H "Cookie: YOUR_SESSION_COOKIE" \
+  -d '{
+    "title": "Task via API",
+    "priority": "Medium",
+    "webhook_url": "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa"
+  }'
+```
+
+### 2. AI Chatbot API
+
+**Endpoint:** `POST /api/ai/chat`
+
+**Contoh:**
+```bash
+curl -X POST http://localhost:3000/api/ai/chat \
+  -H "Content-Type: application/json" \
+  -d '{ "message": "Apa saja task saya hari ini?" }'
+```
+
 ## License
 
 MIT
