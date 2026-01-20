@@ -62,7 +62,9 @@ export async function POST(req: Request) {
       assigned_to,
       start_date,
       due_date,
-      estimated_hours 
+      estimated_hours,
+      reminder_hours_before,
+      webhook_url
     } = body;
 
     if (!title) {
@@ -82,7 +84,9 @@ export async function POST(req: Request) {
           start_date,
           due_date,
           estimated_hours,
-          created_by: user.id
+          created_by: user.id,
+          reminder_hours_before: reminder_hours_before || null,
+          webhook_url: webhook_url || "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa"
         }
       ])
       .select()

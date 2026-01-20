@@ -110,9 +110,12 @@ Aplikasi ini menyediakan REST API endpoints yang dapat diakses di `/api/*`.
   "start_date": "2024-02-01",
   "due_date": "2024-02-05",
   "estimated_hours": 4,
-  "webhook_url": "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa"
+  "reminder_hours_before": 2,
+  "webhook_url": "https://custom-webhook-url.com"
 }
 ```
+
+*Catatan: Jika `webhook_url` tidak diisi, akan menggunakan default: `https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa`*
 
 **Contoh cURL:**
 ```bash
@@ -122,7 +125,7 @@ curl -X POST http://localhost:3000/api/tasks \
   -d '{
     "title": "Task via API",
     "priority": "Medium",
-    "webhook_url": "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa"
+    "reminder_hours_before": 1
   }'
 ```
 
