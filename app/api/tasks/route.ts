@@ -1,16 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { validateApiKey, unauthorizedResponse } from "@/lib/api-auth";
 
 export async function GET(req: Request) {
   try {
-    const supabase = await createClient();
-    
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!validateApiKey(req)) {
+      return unauthorizedResponse();
     }
 
+    const supabase = await createClient();
+    
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("project_id");
     const status = searchParams.get("status");
@@ -44,14 +43,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
-    
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!validateApiKey(req)) {
+      return unauthorizedResponse();
     }
 
+    const supabase = await createClient();
+    
     const body = await req.json();
     const { 
       title, 
@@ -65,11 +62,16 @@ export async function POST(req: Request) {
       estimated_hours,
       reminder_hours_before,
       webhook_url,
-      assignees // Expecting array of UUIDs
+      assignees, // Expecting array of UUIDs
+      created_by
     } = body;
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    if (!created_by) {
+      return NextResponse.json({ error: "created_by (User UUID) is required" }, { status: 400 });
     }
 
     // Use the first assignee as the legacy assigned_to value if provided
@@ -88,7 +90,7 @@ export async function POST(req: Request) {
           start_date,
           due_date,
           estimated_hours,
-          created_by: user.id,
+          created_by,
           reminder_hours_before: reminder_hours_before || null,
           webhook_url: webhook_url || "https://workflows.dhomanhuri.id/webhook/53c7e875-8870-45ed-bfcc-6ccdbc8f9faa"
         }

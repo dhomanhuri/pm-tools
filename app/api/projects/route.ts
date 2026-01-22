@@ -1,16 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { validateApiKey, unauthorizedResponse } from "@/lib/api-auth";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const supabase = await createClient();
-    
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!validateApiKey(req)) {
+      return unauthorizedResponse();
     }
 
+    const supabase = await createClient();
+    
     const { data, error } = await supabase
       .from("projects")
       .select("*")
@@ -26,19 +25,21 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
-    
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!validateApiKey(req)) {
+      return unauthorizedResponse();
     }
 
+    const supabase = await createClient();
+    
     const body = await req.json();
-    const { name, description, status, start_date, end_date } = body;
+    const { name, description, status, start_date, end_date, created_by } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    if (!created_by) {
+      return NextResponse.json({ error: "created_by (User UUID) is required" }, { status: 400 });
     }
 
     const { data, error } = await supabase
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
           status: status || "Planning",
           start_date,
           end_date,
-          created_by: user.id
+          created_by
         }
       ])
       .select()

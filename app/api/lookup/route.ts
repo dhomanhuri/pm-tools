@@ -1,16 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { validateApiKey, unauthorizedResponse } from "@/lib/api-auth";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const supabase = await createClient();
-    
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!validateApiKey(req)) {
+      return unauthorizedResponse();
     }
 
+    const supabase = await createClient();
+    
     // Fetch projects and users in parallel
     const [projectsRes, usersRes] = await Promise.all([
       supabase.from("projects").select("id, name, status").order("created_at", { ascending: false }),
