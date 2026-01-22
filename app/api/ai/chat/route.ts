@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { validateApiKey } from "@/lib/api-auth";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -26,10 +27,22 @@ export async function POST(req: Request) {
 
     const supabase = await createClient();
 
-    // 1. Get Current User
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    // 1. Auth Strategy: Check API Key FIRST, then Fallback to Cookie
+    let isAuthenticated = false;
+    
+    // Check API Key
+    if (validateApiKey(req)) {
+      isAuthenticated = true;
+    } else {
+      // Check Cookie Session
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        isAuthenticated = true;
+      }
+    }
+
+    if (!isAuthenticated) {
+      return NextResponse.json({ message: "Unauthorized: Invalid API Key or Session" }, { status: 401 });
     }
 
     // 2. Fetch Context Data (Projects, Tasks, Users)

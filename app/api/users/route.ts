@@ -1,15 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { validateApiKey, unauthorizedResponse } from "@/lib/api-auth";
 
 export async function GET(req: Request) {
   try {
-    if (!validateApiKey(req)) {
-      return unauthorizedResponse();
-    }
-
     const supabase = await createClient();
     
+    // Check authentication (Cookie only as requested)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { data, error } = await supabase
       .from("users")
       .select("id, nama_lengkap, email, role, status_aktif")

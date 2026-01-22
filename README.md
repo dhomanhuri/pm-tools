@@ -89,15 +89,61 @@ Lihat `SETUP.md` untuk instruksi setup lengkap.
 
 Lihat `COPY_FILES.md` untuk daftar file yang perlu di-copy dari project utama.
 
-## API Usage
+## API Usage & Authentication
 
-Aplikasi ini menyediakan REST API endpoints yang dapat diakses di `/api/*`.
+Aplikasi ini menyediakan REST API endpoints yang mendukung **Hybrid Authentication** (Cookie Session & API Key).
 
-**Catatan:** API ini menggunakan autentikasi sesi (cookie based), jadi pastikan Anda login terlebih dahulu atau mengirimkan cookie sesi yang valid.
+### 1. Authentication Methods
 
-### 1. Membuat Task Baru via API
+#### A. Frontend (Cookie Session)
+Secara default, aplikasi frontend menggunakan cookie session (Supabase Auth) untuk berkomunikasi dengan API.
 
-**Endpoint:** `POST /api/tasks`
+#### B. External Access (API Key)
+Untuk mengakses API dari luar aplikasi (misalnya: cron jobs, external scripts, postman), gunakan Header `x-api-key`.
+
+1.  Set Environment Variable di `.env`:
+    ```env
+    PM_TOOLS_API_KEY=your_secure_random_string_here
+    ```
+2.  Gunakan header `x-api-key` pada setiap request.
+
+### 2. Endpoints Overview
+
+| Endpoint | Methods | Auth Support | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/projects` | GET, POST | Hybrid (Key/Cookie) | Manage projects |
+| `/api/tasks` | GET, POST | Hybrid (Key/Cookie) | Manage tasks |
+| `/api/ai/chat` | POST | Hybrid (Key/Cookie) | AI Assistant Chat |
+| `/api/lookup` | GET | Hybrid (Key/Cookie) | Get projects & users list |
+| `/api/users` | GET | **Cookie Only** | List users (Frontend only) |
+
+### 3. Usage Examples (cURL)
+
+#### Create Task (via API Key)
+**Note:** Saat menggunakan API Key untuk operasi `POST` (Create), field `created_by` (UUID User) **WAJIB** disertakan dalam JSON body karena tidak ada session user.
+
+```bash
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "title": "Task Created via API",
+    "description": "This task was created using API Key auth",
+    "project_id": "uuid-project-id",
+    "created_by": "uuid-user-id",
+    "priority": "High"
+  }'
+```
+
+#### Chat with AI (via API Key)
+```bash
+curl -X POST http://localhost:3000/api/ai/chat \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY" \
+  -d '{
+    "message": "List active projects"
+  }'
+```
 
 **Request Body (JSON):**
 ```json
